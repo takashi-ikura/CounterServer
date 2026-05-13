@@ -2,7 +2,9 @@
 
 {% block content %}
     <h1>カウンター</h1>
-    <div id="counter-display" style="font-size: 3em; font-weight: bold;">{{ count }}</div>
+    <div id="counter-display" style="font-size: 3em; font-weight: bold;margin-bottom: 20px;">{{ count }}</div>
+    <button onclick="ResetCounter()" style="font-size: 1.5em; padding: 10px 20px;">リセット</button>
+    <button onclick="UpdateDisplay()" style="font-size: 1.5em; padding: 10px 20px;">更新</button>
 
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
@@ -12,11 +14,19 @@
         // サーバーから 'update_event' という通知が届いた時の処理
         socket.on('update_event', function() {
             console.log("サーバーから更新通知を受信しました！");
-            updateDisplay(); 
+            UpdateDisplay(); 
         });
 
+        //　リセット用のWebSocket接続を確立
+        const sokReset = new WebSocket('ws://localhost:8765');
+        sokReset.onopen = () => {
+            console.log('Reset用のWebSocket接続が確立されました。');
+        };
+
+        //------------------------------
         // FlaskのAPIから最新の数値を取得して画面を書き換える関数
-        async function updateDisplay() {
+        //------------------------------
+        async function UpdateDisplay() {
             try {
                 const res = await fetch('/api/get_current_count'); 
                 const data = await res.json();
@@ -27,5 +37,18 @@
                 console.error("データの取得に失敗しました:", error);
             }
         }
+        //------------------------------
+        // カウンターをリセットする関数
+        //------------------------------
+        function ResetCounter() {
+            if (sokReset.readyState === WebSocket.OPEN) {
+                const data = { type: "reset" };
+                sokReset.send(JSON.stringify(data));
+                console.log("リセットコマンドを送信しました。");
+            } else {
+                console.error("Reset用のWebSocket接続が開いていません。");
+            }
+        }
+
     </script>
 {% endblock %}

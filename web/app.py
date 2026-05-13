@@ -26,7 +26,7 @@ def show_counter():
     row = cursor.fetchone()
     conn.close()
     if row:
-        return row["total"]
+        return row["total"] or 0
     else:
         return 0  # データがない場合は0を返す
 

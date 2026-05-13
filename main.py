@@ -9,13 +9,14 @@ import requests
 # --- データベース設定 ---
 DB_NAME = "data_store.db"
 PORT_NO = 8765
+NOTIFY_UPDATE_URL ="http://localhost:5000/api/notify_update"
 
 LOG = clsLog.AppLogger(log_dir="/app", log_name="server.log")
 
 # --- ブラウザ更新通知関数 ---
 def notify_update():
     try:
-        requests.get("http://localhost:5000/api/notify_update")
+        requests.get(NOTIFY_UPDATE_URL)
     except Exception as e:
         LOG.error(f"notify_update(): {e}")
 
