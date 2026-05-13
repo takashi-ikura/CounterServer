@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>カウンター</h1>
+    <div id="counter-display" style="font-size: 3em; font-weight: bold;">{{ count }}</div>
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        // Socket.IOの接続を開始
+        const socket = io();
+
+        // サーバーから 'update_event' という通知が届いた時の処理
+        socket.on('update_event', function() {
+            console.log("サーバーから更新通知を受信しました！");
+            updateDisplay(); 
+        });
+
+        // FlaskのAPIから最新の数値を取得して画面を書き換える関数
+        async function updateDisplay() {
+            try {
+                const res = await fetch('/api/get_current_count'); 
+                const data = await res.json();
+                
+                // 取得した数値でHTMLを書き換え
+                document.getElementById('counter-display').innerText = data.count;
+            } catch (error) {
+                console.error("データの取得に失敗しました:", error);
+            }
+        }
+    </script>
+{% endblock %}
