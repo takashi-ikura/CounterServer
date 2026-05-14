@@ -4,7 +4,7 @@
     <h1>Counter</h1>
     <div id="counter-display" style="font-size: 3em; font-weight: bold;margin-bottom: 20px;">---</div>
     <button onclick="ResetCounter()" style="font-size: 1.5em; padding: 10px 20px;">Reset</button>
-    <button onclick="CounterUpdateWebSocket()" style="font-size: 1.5em; padding: 10px 20px;">Update</button>
+    <button onclick="CounterUpdate()" style="font-size: 1.5em; padding: 10px 20px;">Update</button>
 
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
@@ -18,7 +18,7 @@
         WebSocketObj.onopen = () => {
             console.log('Reset用のWebSocket接続が確立されました。');
             //カウントの初期表示
-            CounterUpdateWebSocket();
+            CounterUpdate();
         };
 
         // WebSocketの受信設定
@@ -46,7 +46,7 @@
         //------------------------------
         // サーバにWebSocketで画面のカウントを更新する
         //------------------------------
-        function CounterUpdateWebSocket() {
+        function CounterUpdate() {
             if (WebSocketObj.readyState === WebSocket.OPEN) {
                 const data = { type: "update_counter" };
                 WebSocketObj.send(JSON.stringify(data));
