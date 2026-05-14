@@ -1,10 +1,12 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>Counter</h1>
-    <div id="counter-display" style="font-size: 3em; font-weight: bold;margin-bottom: 20px;">---</div>
-    <button onclick="ResetCounter()" style="font-size: 1.5em; padding: 10px 20px;">Reset</button>
-    <button onclick="CounterUpdate()" style="font-size: 1.5em; padding: 10px 20px;">Update</button>
+    <div style="padding:20px;">
+        <h1>Counter</h1>
+        <div id="counter-display" style="font-size: 3em; font-weight: bold;margin-bottom: 20px;">---</div>
+        <button onclick="ResetCounter()" style="font-size: 1.5em; padding: 10px 20px;">Reset</button>
+        <button onclick="CounterUpdate()" style="font-size: 1.5em; padding: 10px 20px;">Update</button>
+    </div>
 
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
