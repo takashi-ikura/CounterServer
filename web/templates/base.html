@@ -2,7 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Flask App</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <title>次世代開発 = Counter Viewer =</title>
     <style>
         /* 簡単な2カラムレイアウトのCSS */
         body { display: flex; margin: 0; height: 100vh; font-family: sans-serif; }
@@ -27,9 +28,9 @@
 </head>
 <body>
     <div class="sidebar">
-        <h2>機能一覧</h2>
+        <h2>Counter Viewer</h2>
         <a href="{{ url_for('home') }}">Home</a>
-        <a href="{{ url_for('counter') }}">カウンター</a>
+        <a href="{{ url_for('counter') }}">Counter</a>
     </div>
 
     <div class="main-content">

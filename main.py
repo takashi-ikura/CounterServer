@@ -4,23 +4,20 @@ import datetime
 import websockets
 import json
 import clsLog
-import requests
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # --- データベース設定 ---
-DB_NAME = "data_store.db"
-PORT_NO = 8765
-NOTIFY_UPDATE_URL ="http://localhost:5000/api/notify_update"
+DB_NAME = os.getenv("DB_NAME")
+PORT_NO = int(os.getenv("PORT_NO"))
 
-LOG = clsLog.AppLogger(log_dir="/app", log_name="server.log")
+# --- ログ設定 ---
+LOG = clsLog.AppLogger(log_dir=os.getenv("LOG_DIR"), log_name=os.getenv("LOG_NAME"))
 
+# --- 接続中のクライアント情報初期化 ---
 connected_clients = set()
-
-# --- ブラウザ更新通知関数 ---
-def notify_update():
-    try:
-        requests.get(NOTIFY_UPDATE_URL)
-    except Exception as e:
-        LOG.error(f"notify_update(): {e}")
 
 # --- ブラウザ更新通知関数（WebSocket版） ---
 async def notify_update_socket():
@@ -113,6 +110,7 @@ def get_active_counter():
     finally:
         conn.close()
 
+# --- WebSocketハンドラー関数 ---
 async def handler(websocket):
     connected_clients.add(websocket)
     try:
@@ -183,7 +181,9 @@ async def handler(websocket):
         connected_clients.remove(websocket)
         LOG.info(f"Client disconnected. Total clients: {len(connected_clients)}")
 
+# --- メイン関数 ---
 async def main():
+
     init_db()
     
     # サーバーを起動し、そのオブジェクトを保持

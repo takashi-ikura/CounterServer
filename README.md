@@ -21,3 +21,8 @@ pip install flask-socketio
 ```bash
 pip install requests
 ```
+
+- env
+```bash
+pip install python-dotenv
+```

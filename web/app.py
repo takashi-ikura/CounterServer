@@ -3,42 +3,18 @@ import os
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 from flask import jsonify
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# ※未使用
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# ※未使用
-DB_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "data_store.db"))
-
-# DB接続用の関数
-# ※未使用
-def get_db_connection():
-    # DB接続用の関数
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row  # カラム名でデータを取り出せるようにする設定
-    return conn
-
-# DBから最新のカウンタ値を取得する関数
-# ※未使用
-def show_counter():
-    # DBから最新のカウンタ値を取得する関数
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT sum(val) as total FROM measurements WHERE is_active = 1")
-    row = cursor.fetchone()
-    conn.close()
-    if row:
-        return row["total"] or 0
-    else:
-        return 0  # データがない場合は0を返す
+load_dotenv()
+SERVER_WS_URL = os.getenv("SERVER_WS_URL")
+PORT_NO = int(os.getenv("PORT_NO"))
 
 @app.route('/')
 def counter():
-    #count = show_counter()  # DBから最新のカウンタ値を取得
-    #return render_template('counter.html',count=count)
-    return render_template('counter.html')
+    return render_template('counter.html', SERVER_WS_URL=SERVER_WS_URL)
 
 @app.route('/home')
 def home():
@@ -50,12 +26,5 @@ def notify_update():
     socketio.emit('update_event', {'message': 'refresh_needed'})
     return "OK"
 
-@app.route('/api/get_current_count')
-def get_current_count():
-    # 自作の関数を実行
-    val = show_counter()
-    # 結果をJSON（辞書のような形式）でブラウザに返却
-    return jsonify({"count": val})
-
 if __name__ == '__main__':
-    socketio.run(app, debug=True, port=5000)
+    socketio.run(app, debug=True, port=PORT_NO)

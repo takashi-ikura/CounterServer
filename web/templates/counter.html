@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>カウンター</h1>
+    <h1>Counter</h1>
     <div id="counter-display" style="font-size: 3em; font-weight: bold;margin-bottom: 20px;">---</div>
-    <button onclick="ResetCounter()" style="font-size: 1.5em; padding: 10px 20px;">リセット</button>
-    <button onclick="CounterUpdateWebSocket()" style="font-size: 1.5em; padding: 10px 20px;">更新</button>
+    <button onclick="ResetCounter()" style="font-size: 1.5em; padding: 10px 20px;">Reset</button>
+    <button onclick="CounterUpdateWebSocket()" style="font-size: 1.5em; padding: 10px 20px;">Update</button>
 
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
@@ -16,7 +16,7 @@
         //------------------------------
 
         //　リセット用のWebSocket接続を確立
-        const WebSocketObj = new WebSocket('ws://localhost:8765');
+        const WebSocketObj = new WebSocket("{{ SERVER_WS_URL }}");
         WebSocketObj.onopen = () => {
             console.log('Reset用のWebSocket接続が確立されました。');
             //カウントの初期表示
