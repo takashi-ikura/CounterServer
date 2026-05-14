@@ -2,30 +2,72 @@
 
 {% block content %}
     <h1>カウンター</h1>
-    <div id="counter-display" style="font-size: 3em; font-weight: bold;margin-bottom: 20px;">{{ count }}</div>
+    <div id="counter-display" style="font-size: 3em; font-weight: bold;margin-bottom: 20px;">---</div>
     <button onclick="ResetCounter()" style="font-size: 1.5em; padding: 10px 20px;">リセット</button>
-    <button onclick="UpdateDisplay()" style="font-size: 1.5em; padding: 10px 20px;">更新</button>
+    <button onclick="CounterUpdateWebSocket()" style="font-size: 1.5em; padding: 10px 20px;">更新</button>
 
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
         // Socket.IOの接続を開始
         const socket = io();
 
+        //------------------------------
+        // WebSocket関連
+        //------------------------------
+
+        //　リセット用のWebSocket接続を確立
+        const WebSocketObj = new WebSocket('ws://localhost:8765');
+        WebSocketObj.onopen = () => {
+            console.log('Reset用のWebSocket接続が確立されました。');
+            //カウントの初期表示
+            CounterUpdateWebSocket();
+        };
+
+        // WebSocketの受信設定
+        WebSocketObj.onmessage = (event) => {
+            try {
+                // 1. 受信したデータ（文字列）をオブジェクトに変換
+                const data = JSON.parse(event.data);
+
+                // 2. メッセージの種類（type）を確認
+                if (data.type === 'counter') {
+                    const counterValue = data.value;
+                    
+                    // 3. 画面上の要素に反映（例: id="counter-display" の要素を書き換える場合）
+                    console.log('カウンター更新:', counterValue);
+                    const displayElement = document.getElementById('counter-display');
+                    if (displayElement) {
+                        displayElement.innerText = counterValue;
+                    }
+                }
+            } catch (error) {
+                console.error('JSON解析エラー:', error);
+            }
+        };
+
+        //------------------------------
+        // サーバにWebSocketで画面のカウントを更新する
+        //------------------------------
+        function CounterUpdateWebSocket() {
+            if (WebSocketObj.readyState === WebSocket.OPEN) {
+                const data = { type: "update_counter" };
+                WebSocketObj.send(JSON.stringify(data));
+                console.log("更新コマンドを送信しました。");
+            } else {
+                console.error("Update用のWebSocket接続が開いていません。");
+            }
+        }
+
+        //------------------------------
+        // FlaskのAPIから最新の数値を取得して画面を書き換える関数
+        //------------------------------
+
         // サーバーから 'update_event' という通知が届いた時の処理
         socket.on('update_event', function() {
             console.log("サーバーから更新通知を受信しました！");
             UpdateDisplay(); 
         });
-
-        //　リセット用のWebSocket接続を確立
-        const sokReset = new WebSocket('ws://localhost:8765');
-        sokReset.onopen = () => {
-            console.log('Reset用のWebSocket接続が確立されました。');
-        };
-
-        //------------------------------
-        // FlaskのAPIから最新の数値を取得して画面を書き換える関数
-        //------------------------------
+        //画面のカウントを更新する関数
         async function UpdateDisplay() {
             try {
                 const res = await fetch('/api/get_current_count'); 
@@ -41,9 +83,9 @@
         // カウンターをリセットする関数
         //------------------------------
         function ResetCounter() {
-            if (sokReset.readyState === WebSocket.OPEN) {
+            if (WebSocketObj.readyState === WebSocket.OPEN) {
                 const data = { type: "reset" };
-                sokReset.send(JSON.stringify(data));
+                WebSocketObj.send(JSON.stringify(data));
                 console.log("リセットコマンドを送信しました。");
             } else {
                 console.error("Reset用のWebSocket接続が開いていません。");

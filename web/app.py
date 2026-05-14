@@ -7,10 +7,13 @@ from flask import jsonify
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+# ※未使用
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# ※未使用
 DB_PATH = os.path.abspath(os.path.join(BASE_DIR, "..", "data_store.db"))
 
 # DB接続用の関数
+# ※未使用
 def get_db_connection():
     # DB接続用の関数
     conn = sqlite3.connect(DB_PATH)
@@ -18,6 +21,7 @@ def get_db_connection():
     return conn
 
 # DBから最新のカウンタ値を取得する関数
+# ※未使用
 def show_counter():
     # DBから最新のカウンタ値を取得する関数
     conn = get_db_connection()
@@ -32,8 +36,9 @@ def show_counter():
 
 @app.route('/')
 def counter():
-    count = show_counter()  # DBから最新のカウンタ値を取得
-    return render_template('counter.html',count=count)
+    #count = show_counter()  # DBから最新のカウンタ値を取得
+    #return render_template('counter.html',count=count)
+    return render_template('counter.html')
 
 @app.route('/api/notify_update')
 def notify_update():

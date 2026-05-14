@@ -13,10 +13,37 @@ NOTIFY_UPDATE_URL ="http://localhost:5000/api/notify_update"
 
 LOG = clsLog.AppLogger(log_dir="/app", log_name="server.log")
 
+connected_clients = set()
+
 # --- ブラウザ更新通知関数 ---
 def notify_update():
     try:
         requests.get(NOTIFY_UPDATE_URL)
+    except Exception as e:
+        LOG.error(f"notify_update(): {e}")
+
+# --- ブラウザ更新通知関数（WebSocket版） ---
+async def notify_update_socket():
+
+    try:
+        if not connected_clients:
+            return
+        
+        counter_value = get_active_counter()
+        
+        # 送信するメッセージの作成
+        message = json.dumps({
+            "type": "counter",
+            "value": counter_value
+        })
+
+        # 全クライアントに一斉送信
+        # waitを使って並列に処理すると効率的です
+        await asyncio.gather(
+            *[client.send(message) for client in connected_clients],
+            return_exceptions=True # 一部の送信失敗で全体を止めないため
+        )
+
     except Exception as e:
         LOG.error(f"notify_update(): {e}")
 
@@ -66,7 +93,28 @@ def reset_counter():
     finally:
         conn.close()
 
+# --- アクティブなカウンターの取得関数 ---
+def get_active_counter():
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        sql = "SELECT IFNULL(sum(val), 0) AS total FROM measurements WHERE is_active = 1"
+        cursor.execute(sql)
+        result = cursor.fetchone()
+        if result:
+            return result["total"]
+        else:
+            return 0
+            
+    except Exception as e:
+        LOG.error(f"Database error: {e}")
+        return 0
+    finally:
+        conn.close()
+
 async def handler(websocket):
+    connected_clients.add(websocket)
     try:
         async for message in websocket:
             try:
@@ -79,21 +127,61 @@ async def handler(websocket):
                 if DataType == "counter":
                     number = data.get("value")
                     save_to_db(number)
-                    await websocket.send(f"Received and saved: {number}")
-                    notify_update()  # ブラウザ更新通知
+                    message = {
+                                "type": "counter",
+                                "value": number
+                            }
+                    await websocket.send(json.dumps(message))
+                    await notify_update_socket()  # ブラウザ更新通知
 
                 ###################
                 #カウントのリセット
                 ###################
                 if DataType == "reset":
                     reset_counter()
-                    await websocket.send("Counter reset.")
-                    notify_update()  # ブラウザ更新通知
+                    message = {
+                                "type": "reset",
+                                "value": "Counter reset."
+                            }
+                    await websocket.send(json.dumps(message))
+                    await notify_update_socket()  # ブラウザ更新通知
+
+                ###################
+                #カウントの取得
+                ###################
+                if DataType == "get_counter":
+                    counter_value = get_active_counter()
+                    message = {
+                                "type": "counter",
+                                "value": counter_value
+                            }
+                    await websocket.send(json.dumps(message))
+
+                ###################
+                #カウントの更新
+                ###################
+                if DataType == "update_counter":
+                    message = {
+                                "type": "update_counter",
+                                "value": "update_counter."
+                            }
+                    await websocket.send(json.dumps(message))
+                    await notify_update_socket()  # ブラウザ更新通知
 
             except (ValueError, TypeError):
-                await websocket.send("Error: Please send a valid integer.")
+                message = {
+                            "type": "error",
+                            "value": "Invalid input. Please send a valid integer."
+                        }
+                await websocket.send(json.dumps(message))
+
     except websockets.exceptions.ConnectionClosed:
-        pass # クライアントが切断した場合は何もしない
+        LOG.info("Client connection closed normally.")
+    except Exception as e:
+        LOG.error(f"Handler error: {e}")
+    finally:
+        connected_clients.remove(websocket)
+        LOG.info(f"Client disconnected. Total clients: {len(connected_clients)}")
 
 async def main():
     init_db()
@@ -120,6 +208,8 @@ if __name__ == "__main__":
         #reset_counter() 
         #カウントの追加
         #save_to_db(10)
+        #カウントの表示
+        #print(get_active_counter())
 
     except KeyboardInterrupt:
         # Ctrl+Cによるエラー出力をここで食い止める
