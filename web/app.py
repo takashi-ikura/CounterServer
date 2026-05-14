@@ -40,6 +40,10 @@ def counter():
     #return render_template('counter.html',count=count)
     return render_template('counter.html')
 
+@app.route('/home')
+def home():
+    return render_template('home.html')
+
 @app.route('/api/notify_update')
 def notify_update():
     # 接続中の全ブラウザに 'update_event' を送る
