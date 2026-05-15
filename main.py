@@ -46,31 +46,31 @@ async def notify_update_socket():
 
 # --- データベース初期化関数 ---
 def init_db():
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS measurements (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            val INTEGER NOT NULL,
-            savetime TIMESTAMP NOT NULL,
-            is_active BOOLEAN DEFAULT 1
-        )
-    ''')
-    conn.commit()
+    with sqlite3.connect(DB_NAME) as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS measurements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                val INTEGER NOT NULL,
+                savetime TIMESTAMP NOT NULL,
+                is_active BOOLEAN DEFAULT 1
+            )
+        ''')
+        conn.commit()
     conn.close()
 
 # --- データ保存関数 ---
 def save_to_db(value):
     try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        cursor.execute(
-            "INSERT INTO measurements (val, savetime, is_active) VALUES (?, ?, ?)",
-            (value, now, True)
-        )
-        conn.commit()
-        LOG.info(f"Saved: {value} at {now}")
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            cursor.execute(
+                "INSERT INTO measurements (val, savetime, is_active) VALUES (?, ?, ?)",
+                (value, now, True)
+            )
+            conn.commit()
+            LOG.info(f"Saved: {value} at {now}")
     except Exception as e:
         LOG.error(f"Database error: {e}")
     finally:
@@ -79,12 +79,12 @@ def save_to_db(value):
 # --- カウンターリセット関数---
 def reset_counter():
     try:
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        sql = "UPDATE measurements SET is_active = 0 WHERE is_active = 1"
-        cursor.execute(sql)
-        conn.commit()
-        LOG.info(f"Counter Reset")
+        with sqlite3.connect(DB_NAME) as conn:
+            cursor = conn.cursor()
+            sql = "UPDATE measurements SET is_active = 0 WHERE is_active = 1"
+            cursor.execute(sql)
+            conn.commit()
+            LOG.info(f"Counter Reset")
     except Exception as e:
         LOG.error(f"Database error: {e}")
     finally:
@@ -93,20 +93,17 @@ def reset_counter():
 # --- アクティブなカウンターの取得関数 ---
 def get_active_counter():
     try:
-        conn = sqlite3.connect(DB_NAME)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        sql = "SELECT IFNULL(sum(val), 0) AS total FROM measurements WHERE is_active = 1"
-        cursor.execute(sql)
-        result = cursor.fetchone()
-        if result:
-            return result["total"]
-        else:
-            return 0
-            
+        with sqlite3.connect(DB_NAME) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            sql = "SELECT IFNULL(sum(val), 0) AS total FROM measurements WHERE is_active = 1"
+            cursor.execute(sql)
+            result = cursor.fetchone()
+            return result["total"] if result else 0
+
     except Exception as e:
         LOG.error(f"Database error: {e}")
-        return 0
+        raise  # 呼び出し元にエラーを伝える
     finally:
         conn.close()
 
@@ -125,11 +122,11 @@ async def handler(websocket):
                 if DataType == "counter":
                     number = data.get("value")
                     save_to_db(number)
-                    message = {
+                    response = {
                                 "type": "counter",
                                 "value": number
                             }
-                    await websocket.send(json.dumps(message))
+                    await websocket.send(json.dumps(response))
                     await notify_update_socket()  # ブラウザ更新通知
 
                 ###################
@@ -137,11 +134,11 @@ async def handler(websocket):
                 ###################
                 if DataType == "reset":
                     reset_counter()
-                    message = {
+                    response = {
                                 "type": "reset",
                                 "value": "Counter reset."
                             }
-                    await websocket.send(json.dumps(message))
+                    await websocket.send(json.dumps(response))
                     await notify_update_socket()  # ブラウザ更新通知
 
                 ###################
@@ -149,29 +146,29 @@ async def handler(websocket):
                 ###################
                 if DataType == "get_counter":
                     counter_value = get_active_counter()
-                    message = {
+                    response = {
                                 "type": "counter",
                                 "value": counter_value
                             }
-                    await websocket.send(json.dumps(message))
+                    await websocket.send(json.dumps(response))
 
                 ###################
                 #カウントの更新
                 ###################
                 if DataType == "update_counter":
-                    message = {
+                    response = {
                                 "type": "update_counter",
                                 "value": "update_counter."
                             }
-                    await websocket.send(json.dumps(message))
+                    await websocket.send(json.dumps(response))
                     await notify_update_socket()  # ブラウザ更新通知
 
             except (ValueError, TypeError):
-                message = {
+                response = {
                             "type": "error",
                             "value": "Invalid input. Please send a valid integer."
                         }
-                await websocket.send(json.dumps(message))
+                await websocket.send(json.dumps(response))
 
     except websockets.exceptions.ConnectionClosed:
         LOG.info("Client connection closed normally.")
